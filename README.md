@@ -2,3 +2,8 @@ HashWithThreading
 =================
 
 Sebastian Sangervasi and Nickie VanMeter making a hash table that is thread safe.
+
+The actual submission is the folder "hashlink" 
+"hash" is a coarse mixture of diced meat, potatoes, and spices.
+
+
