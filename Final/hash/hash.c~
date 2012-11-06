@@ -13,57 +13,47 @@ hashtable_t *hashtable_new(int sizehint) {
 		sizehint*=-1;
 	}
 	hash-> numletters = (sizehint/(26*26)) + 1; //This will give us a minimum array size of 676.
-	hash -> tablesize =	(26*26)*(1+(hash->numletters));
-	hash -> table = malloc(sizeof(char*) * (hash->tablesize) );
+	hash -> table = malloc(sizeof(char*) * (26*26)*(hash->numletters));
     return hash;
 }
-  
+
 //Used to resize and rehash.
 hashtable_t *resize(hashtable_t* hashtable){
-	int tablelen = hashtable->tablesize;
-	hashtable_t* bigger = hashtable_new((hashtable->numletters)* (26*26));
+	int tablelen = (hashtable->numletters) * (26*26);
+	hashtable_t* bigger = hashtable_new(tablelen);
 	int i = 0;
-	//int count = 0;
 	for(; i < tablelen; i++){
-		if((hashtable->table)[i] != NULL && (hashtable->table)[i][0] != '~'){
+		if((hashtable->table)[i] != NULL ){
 			hashtable_add(bigger, (hashtable->table)[i]);
-			//count=i;
 		}
 	}
-	//printf("GOOD? |%s| %d\n",(hashtable->table)[count], count );
 	hashtable_free(hashtable);
-	//free(hashtable);
-	printf("old len %d - new len %d\n", hashtable->numletters, bigger->numletters);
 	return bigger;
 }
 
 //Used to get hash value (the location in our char* table)
-int hashFunction(const char* string, int numletters, int* charval){
+int hashFunction(char* string, int numletters, int* charval){
 	int hashval = 0;
 	int letterval = 0;
-	int slen = strlen(string);
-	int count = 0;
-	int i = slen/2; //Currently we're just going to hash from the front of a string, but it might be more unique to hash from (roughly) the middle...
-	for(; count < numletters && count < slen; count++){
-		if(string[i%slen] >= 'A' && string[i%slen] <='Z'){
-			letterval = string[i%slen] - 'A';
-		} else if(string[i%slen] >= 'a' && string[i%slen] <='z'){
-			letterval = string[i%slen] - 'a'; 
-			//printf("oh good\n");
+	int i = 0; //Currently we're just going to hash from the front of a string, but it might be more unique to hash from (roughly) the middle...
+	for(; i < numletters && i < strlen(string); i++){
+		if(string[i] >= 'A' && string[i] <='Z'){
+			letterval = string[i] - 'A';
+		} else if(string[i] >= 'a' && string[i] <='z'){
+			letterval = string[i] - 'a';
 		}else{
 			letterval = -1;
 		}
 		if(letterval>-1){
 			hashval+= charval[letterval] * charval[letterval];
 		}
-		i++;
 	}
 	return hashval;
 }
 
 // free anything allocated by the hashtable library
 void hashtable_free(hashtable_t *hashtable) {
-	int tablelen = hashtable->tablesize;
+	int tablelen = (hashtable->numletters) * (26*26);
 	int i = 0;
 	for(; i<tablelen; i++){
 		free((hashtable->table)[i]);
@@ -76,12 +66,10 @@ void hashtable_free(hashtable_t *hashtable) {
 
 // add a new string to the hashtable
 void hashtable_add(hashtable_t *hashtable, const char *s) {
-	//printf("Added: |%s|\n",s );
-	int tablelen = hashtable->tablesize;
+	int tablelen = (hashtable->numletters) * (26*26);
 	int hashVal = hashFunction(s, hashtable-> numletters, hashtable-> charval);
 	if( hashVal >= tablelen){
-		printf("too large of hashVal\n");
-		*hashtable = *(resize(hashtable));
+		hashtable = resize(hashtable);
 		hashVal = hashFunction(s, hashtable-> numletters, hashtable-> charval);
 	}
 	if((hashtable->table)[hashVal] == NULL){
@@ -97,12 +85,15 @@ void hashtable_add(hashtable_t *hashtable, const char *s) {
 		}
 		while(go == 1){
 			if((hashVal+i)%tablelen == hashVal){
-				*hashtable = *(resize(hashtable));
-				printf("Hashtable Full\n");
+				hashtable = resize(hashtable);
 				hashVal = hashFunction(s, hashtable-> numletters, hashtable-> charval);
-				tablelen = hashtable->tablesize;
-				firstspace = hashVal;
 				go = 0;
+			} else if((hashtable->table)[(hashVal+i)%tablelen][0] == '~'){
+				if(firstspace == -1){
+					firstspace = (hashVal+i)%tablelen;
+				}
+			} else if(strcmp(s, (hashtable->table)[(hashVal+i)%tablelen]) == 0){
+				return;
 			} else if((hashtable->table)[(hashVal+i)%tablelen] == NULL){
 				if(firstspace==-1){
 					firstspace = (hashVal+i)%tablelen;
@@ -110,14 +101,7 @@ void hashtable_add(hashtable_t *hashtable, const char *s) {
 				} else{
 					go = 0;
 				}
-			} else if(strcmp(s, (hashtable->table)[(hashVal+i)%tablelen]) == 0){
-				return;
-			} else if((hashtable->table)[(hashVal+i)%tablelen][0] == '~'){
-				if(firstspace == -1){
-					firstspace = (hashVal+i)%tablelen;
-				}
-			}
-			i++;
+			} 
 		}
 		free((hashtable->table)[firstspace]);
 		(hashtable->table)[firstspace] = strdup(s);
@@ -131,13 +115,11 @@ void hashtable_add(hashtable_t *hashtable, const char *s) {
 // remove a string from the hashtable; if the string
 // doesn't exist in the hashtable, do nothing
 void hashtable_remove(hashtable_t *hashtable, const char *s) {
-	int tablelen = hashtable->tablesize;
+	int tablelen = (hashtable->numletters) * (26*26);
 	int hashVal = hashFunction(s, hashtable-> numletters, hashtable-> charval);
 	if(strcmp(s, (hashtable->table)[hashVal]) == 0){
 		(hashtable->table)[hashVal][0] = '~';
-		printf("truth!\n");
 	} else if((hashtable->table)[hashVal] == NULL){
-		printf("lies!\n");
 		return;
 	} else if((hashtable->table)[hashVal][0] == '~'){
 		int i = 1;
@@ -146,7 +128,6 @@ void hashtable_remove(hashtable_t *hashtable, const char *s) {
 				return;
 			}else if(strcmp((hashtable->table)[(hashVal+i)%tablelen], s) == 0){
 				(hashtable->table)[(hashVal+i)%tablelen][0] = '~';
-				printf("tilde search\n");
 				return;
 			}
 		}
@@ -156,11 +137,11 @@ void hashtable_remove(hashtable_t *hashtable, const char *s) {
 
 // print the contents of the hashtable
 void hashtable_print(hashtable_t *hashtable) {
-	int tablelen = hashtable->tablesize;
+	int tablelen = (hashtable->numletters) * (26*26);
 	int i = 0;
 	for(; i<tablelen; i++){
 		if((hashtable->table)[i] != NULL && (hashtable->table)[i][0] != '~'){
-			printf("%s  ", (hashtable->table)[i]);
+			printf("%s\n", (hashtable->table)[i]);
 		}
 	}
 

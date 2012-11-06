@@ -6,6 +6,8 @@
 #include <string.h>
 #include <errno.h>
 
+/*THIS IS THE HEADER FILE FOR SEBASTIAN AND NICKIE'S THINGY WINGY DINGY DINGY*/
+
 struct node {
 	char name[128];
     struct node *next;

@@ -48,7 +48,7 @@ void list_insert_ordered(char *name,  struct node **head);
 
 void list_insert(char *name, struct node **head);
 
-void list_remove(char *name, struct node **head, pthread_mutex_t linklock);
+void list_remove(char *name, struct node **head, pthread_mutex_t * linklock);
 
 void list_dump(struct node *list);
     

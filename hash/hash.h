@@ -11,7 +11,7 @@ typedef struct {
 	int* charval;
 	char** table;
 	int numletters;
-	 
+	int tablesize;
 	
 } hashtable_t;
 
